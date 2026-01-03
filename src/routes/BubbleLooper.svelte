@@ -4,26 +4,28 @@
 	let {
 		texts = ['First message', 'Second message', 'Third message'],
 		typingMs = 1100,
-		charMs = 28,
-		showMs = 900,
+		showMs = 1400,
 		side = 'left' as 'left' | 'right'
 	} = $props<{
 		texts?: string[];
 		typingMs?: number;
-		charMs?: number;
 		showMs?: number;
 		side?: 'left' | 'right';
 	}>();
 
 	let phase = $state<Phase>('typing');
 	let index = $state(0);
-	let typed = $state('');
 
 	const filtered = $derived.by<string[]>(() =>
 		(texts ?? []).map((t) => (t ?? '').trim()).filter(Boolean)
 	);
 
-	const runKey = $derived.by(() => `${filtered.join('\u0000')}|${typingMs}|${charMs}|${showMs}`);
+	const runKey = $derived.by(() => `${filtered.join('\u0000')}|${typingMs}|${showMs}`);
+
+	const currentText = $derived.by(() => {
+		if (filtered.length === 0) return '';
+		return filtered[index % filtered.length];
+	});
 
 	function sleep(ms: number, signal: AbortSignal) {
 		return new Promise<void>((resolve) => {
@@ -48,36 +50,20 @@
 
 		phase = 'typing';
 		index = 0;
-		typed = '';
 
 		(async () => {
 			while (!ctrl.signal.aborted) {
 				if (filtered.length === 0) {
 					phase = 'typing';
-					typed = '';
 					await sleep(300, ctrl.signal);
 					continue;
 				}
 
 				phase = 'typing';
-				typed = '';
 				await sleep(Math.max(0, typingMs), ctrl.signal);
 				if (ctrl.signal.aborted) break;
 
-				const text = filtered[index % filtered.length];
-				const chars = Array.from(text);
-				const perChar = Math.max(0, charMs);
-
 				phase = 'message';
-				typed = '';
-
-				for (let i = 0; i < chars.length; i++) {
-					if (ctrl.signal.aborted) break;
-					typed += chars[i];
-					await sleep(perChar, ctrl.signal);
-				}
-				if (ctrl.signal.aborted) break;
-
 				await sleep(Math.max(0, showMs), ctrl.signal);
 				if (ctrl.signal.aborted) break;
 
@@ -99,7 +85,7 @@
 				<span class="dot d3"></span>
 			</span>
 		{:else}
-			<span class="msg" aria-label="Message">{typed}</span>
+			<span class="msg spring" aria-label="Message">{currentText}</span>
 		{/if}
 	</div>
 </div>
@@ -123,32 +109,46 @@
 		padding: 10px 14px;
 		border-radius: 18px;
 		box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
-		transition:
-			max-width 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-			border-radius 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-			padding 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+		transform-origin: left bottom;
+		overflow: hidden;
+		will-change: transform;
 	}
 
 	.row.left .bubble {
 		border-bottom-left-radius: 0;
 	}
-
 	.row.right .bubble {
 		border-bottom-right-radius: 0;
+		transform-origin: right bottom;
 	}
 
 	.bubble.typing {
 		max-width: 76px;
 		border-radius: 999px;
 		padding: 10px 12px;
+		overflow: visible;
 	}
 
-	.row.left .bubble.typing {
-		border-bottom-left-radius: 0;
+	.bubble.message {
+		animation: bubbleSpring 760ms cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
-	.row.right .bubble.typing {
-		border-bottom-right-radius: 0;
+	@keyframes bubbleSpring {
+		0% {
+			transform: scale(0.92);
+		}
+		45% {
+			transform: scale(1.035);
+		}
+		70% {
+			transform: scale(0.998);
+		}
+		85% {
+			transform: scale(1.006);
+		}
+		100% {
+			transform: scale(1);
+		}
 	}
 
 	.msg {
@@ -157,6 +157,31 @@
 		letter-spacing: 0.1px;
 		white-space: pre-wrap;
 		word-break: break-word;
+		display: inline-block;
+	}
+
+	.spring {
+		animation: textSpring 640ms cubic-bezier(0.16, 1, 0.3, 1);
+		will-change: transform, opacity;
+	}
+
+	@keyframes textSpring {
+		0% {
+			transform: scale(0.985);
+			opacity: 0;
+		}
+		45% {
+			transform: scale(1.012);
+			opacity: 1;
+		}
+		70% {
+			transform: scale(0.998);
+			opacity: 1;
+		}
+		100% {
+			transform: scale(1);
+			opacity: 1;
+		}
 	}
 
 	.dots {
@@ -189,7 +214,7 @@
 		0%,
 		100% {
 			transform: translateY(0);
-			opacity: 0.55;
+			opacity: 0.5;
 		}
 		50% {
 			transform: translateY(-3px);

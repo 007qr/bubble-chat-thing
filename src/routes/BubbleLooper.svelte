@@ -55,7 +55,7 @@
 			while (!ctrl.signal.aborted) {
 				if (filtered.length === 0) {
 					phase = 'typing';
-					await sleep(300, ctrl.signal);
+					await sleep(500, ctrl.signal);
 					continue;
 				}
 

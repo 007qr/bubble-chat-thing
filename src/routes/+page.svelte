@@ -17,9 +17,9 @@
 				>is <i>this</i> you?</span
 			>
 			<div class="max-w-200 self-start">
-				<BubbleLooper texts={lines} typingMs={900} showMs={900} />
+				<BubbleLooper texts={lines} typingMs={1200} showMs={2000} />
 			</div>
-			<div class="absolute bottom-10 right-10 w-[320px] max-w-[90vw]">
+			<div class="absolute right-10 bottom-10 w-[320px] max-w-[90vw]">
 				<CustomLinesEditor bind:lines />
 			</div>
 		</div>
